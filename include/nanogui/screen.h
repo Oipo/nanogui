@@ -77,26 +77,12 @@ public:
      *     invalid profile will result in no context (and therefore no GUI)
      *     being created.
      */
-    Screen(const Vector2i &size, const std::string &caption,
-           bool resizable = true, bool fullscreen = false, int colorBits = 8,
-           int alphaBits = 8, int depthBits = 24, int stencilBits = 8,
-           int nSamples = 0,
-           unsigned int glMajor = 3, unsigned int glMinor = 3);
+    Screen(int id, const Vector2i &size, float pixelRatio);
+
+    int id() const { return mId; }
 
     /// Release all resources
     virtual ~Screen();
-
-    /// Get the window title bar caption
-    const std::string &caption() const { return mCaption; }
-
-    /// Set the window title bar caption
-    void setCaption(const std::string &caption);
-
-    /// Return the screen's background color
-    const Color &background() const { return mBackground; }
-
-    /// Set the screen's background color
-    void setBackground(const Color &background) { mBackground = background; }
 
     /// Set the top-level window visibility (no effect on full-screen windows)
     void setVisible(bool visible);
@@ -128,14 +114,8 @@ public:
     /// Return the last observed mouse position value
     Vector2i mousePos() const { return mMousePos; }
 
-    /// Return a pointer to the underlying GLFW window data structure
-    GLFWwindow *glfwWindow() { return mGLFWWindow; }
-
     /// Return a pointer to the underlying nanoVG draw context
     NVGcontext *nvgContext() { return mNVGContext; }
-
-    void setShutdownGLFWOnDestruct(bool v) { mShutdownGLFWOnDestruct = v; }
-    bool shutdownGLFWOnDestruct() { return mShutdownGLFWOnDestruct; }
 
     using Widget::performLayout;
 
@@ -162,7 +142,7 @@ public:
     Screen();
 
     /// Initialize the \ref Screen
-    void initialize(GLFWwindow *window, bool shutdownGLFWOnDestruct);
+    void initialize(int id, const Vector2i &size, float pixelRatio);
 
     /* Event handlers */
     bool cursorPosCallbackEvent(double x, double y);
@@ -171,7 +151,7 @@ public:
     bool charCallbackEvent(unsigned int codepoint);
     bool dropCallbackEvent(int count, const char **filenames);
     bool scrollCallbackEvent(double x, double y);
-    bool resizeCallbackEvent(int width, int height);
+    bool resizeCallbackEvent(int w, int h, float pixelRatio);
 
     /* Internal helper functions */
     void updateFocus(Widget *widget);
@@ -181,12 +161,10 @@ public:
     void drawWidgets();
 
 protected:
-    GLFWwindow *mGLFWWindow;
+    int mId;
     NVGcontext *mNVGContext;
-    GLFWcursor *mCursors[(int) Cursor::CursorCount];
     Cursor mCursor;
     std::vector<Widget *> mFocusPath;
-    Vector2i mFBSize;
     float mPixelRatio;
     int mMouseState, mModifiers;
     Vector2i mMousePos;
@@ -194,10 +172,6 @@ protected:
     Widget *mDragWidget = nullptr;
     double mLastInteraction;
     bool mProcessEvents;
-    Color mBackground;
-    std::string mCaption;
-    bool mShutdownGLFWOnDestruct;
-    bool mFullscreen;
 };
 
 NAMESPACE_END(nanogui)

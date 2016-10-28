@@ -29,95 +29,21 @@
 
 NAMESPACE_BEGIN(nanogui)
 
-extern std::map<GLFWwindow *, Screen *> __nanogui_screens;
+//extern std::map<GLFWwindow *, Screen *> __nanogui_screens;
 
-void init() {
-    #if !defined(_WIN32)
-        /* Avoid locale-related number parsing issues */
-        setlocale(LC_NUMERIC, "C");
-    #endif
+WindowHandlerConstants __window_handler_constants;
 
-    glfwSetErrorCallback(
-        [](int error, const char *descr) {
-            if (error == GLFW_NOT_INITIALIZED)
-                return; /* Ignore */
-            std::cerr << "GLFW error " << error << ": " << descr << std::endl;
-        }
-    );
-
-    if (!glfwInit())
-        throw std::runtime_error("Could not initialize GLFW!");
-
-    glfwSetTime(0);
+void init(WindowHandlerConstants constants) {
+    __window_handler_constants = constants;
 }
 
-static bool mainloop_active = false;
-
-void mainloop(int refresh) {
-    if (mainloop_active)
-        throw std::runtime_error("Main loop is already running!");
-
-    mainloop_active = true;
-
-    std::thread refresh_thread;
-    if (refresh > 0) {
-        /* If there are no mouse/keyboard events, try to refresh the
-           view roughly every 50 ms (default); this is to support animations
-           such as progress bars while keeping the system load
-           reasonably low */
-        refresh_thread = std::thread(
-            [refresh]() {
-                std::chrono::milliseconds time(refresh);
-                while (mainloop_active) {
-                    std::this_thread::sleep_for(time);
-                    glfwPostEmptyEvent();
-                }
-            }
-        );
-    }
-
-    try {
-        while (mainloop_active) {
-            int numScreens = 0;
-            for (auto kv : __nanogui_screens) {
-                Screen *screen = kv.second;
-                if (!screen->visible()) {
-                    continue;
-                } else if (glfwWindowShouldClose(screen->glfwWindow())) {
-                    screen->setVisible(false);
-                    continue;
-                }
-                screen->drawAll();
-                numScreens++;
-            }
-
-            if (numScreens == 0) {
-                /* Give up if there was nothing to draw */
-                mainloop_active = false;
-                break;
-            }
-
-            /* Wait for mouse/keyboard or empty refresh events */
-            glfwWaitEvents();
-        }
-
-        /* Process events once more */
-        glfwPollEvents();
-    } catch (const std::exception &e) {
-        std::cerr << "Caught exception in main loop: " << e.what() << std::endl;
-        abort();
-    }
-
-    if (refresh > 0)
-        refresh_thread.join();
-}
-
-void leave() {
-    mainloop_active = false;
-}
 
 void shutdown() {
-    glfwTerminate();
+
+}
+
+WindowHandlerConstants const get_window_handler_constants() {
+    return __window_handler_constants;
 }
 
 std::array<char, 8> utf8(int c) {
@@ -281,4 +207,3 @@ void Object::decRef(bool dealloc) const noexcept {
 Object::~Object() { }
 
 NAMESPACE_END(nanogui)
-

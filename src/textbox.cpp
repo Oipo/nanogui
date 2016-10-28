@@ -281,7 +281,8 @@ void TextBox::draw(NVGcontext* ctx) {
 bool TextBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
                                int modifiers) {
 
-    if (button == GLFW_MOUSE_BUTTON_1 && down && !mFocused) {
+    auto constants = get_window_handler_constants();
+    if (button == constants.primaryMouseButton() && down && !mFocused) {
         if (!mSpinnable || spinArea(p) == SpinArea::None) /* not on scrolling arrows */
             requestFocus();
     }
@@ -291,7 +292,7 @@ bool TextBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
             mMouseDownPos = p;
             mMouseDownModifier = modifiers;
 
-            double time = glfwGetTime();
+            double time = constants.getTime();
             if (time - mLastClick < 0.25) {
                 /* Double-click: select all text */
                 mSelectionPos = 0;
@@ -310,7 +311,7 @@ bool TextBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
                 mMouseDownPos = p;
                 mMouseDownModifier = modifiers;
 
-                double time = glfwGetTime();
+                double time = constants.getTime();
                 if (time - mLastClick < 0.25) {
                     /* Double-click: reset to default value */
                     mValue = mDefaultValue;
@@ -398,9 +399,10 @@ bool TextBox::focusEvent(bool focused) {
 
 bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifiers) {
     if (mEditable && focused()) {
-        if (action == GLFW_PRESS || action == GLFW_REPEAT) {
-            if (key == GLFW_KEY_LEFT) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+        auto constants = get_window_handler_constants();
+        if (action == constants.mousePress() || action == constants.mouseRelease()) {
+            if (key == constants.leftKey()) {
+                if (modifiers == constants.shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -409,8 +411,8 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
 
                 if (mCursorPos > 0)
                     mCursorPos--;
-            } else if (key == GLFW_KEY_RIGHT) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+            } else if (key == constants.rightKey()) {
+                if (modifiers == constants.shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -419,8 +421,8 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
 
                 if (mCursorPos < (int) mValueTemp.length())
                     mCursorPos++;
-            } else if (key == GLFW_KEY_HOME) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+            } else if (key == constants.homeKey()) {
+                if (modifiers == constants.shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -428,8 +430,8 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
                 }
 
                 mCursorPos = 0;
-            } else if (key == GLFW_KEY_END) {
-                if (modifiers == GLFW_MOD_SHIFT) {
+            } else if (key == constants.endKey()) {
+                if (modifiers == constants.shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -437,30 +439,30 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
                 }
 
                 mCursorPos = (int) mValueTemp.size();
-            } else if (key == GLFW_KEY_BACKSPACE) {
+            } else if (key == constants.backspaceKey()) {
                 if (!deleteSelection()) {
                     if (mCursorPos > 0) {
                         mValueTemp.erase(mValueTemp.begin() + mCursorPos - 1);
                         mCursorPos--;
                     }
                 }
-            } else if (key == GLFW_KEY_DELETE) {
+            } else if (key == constants.deleteKey()) {
                 if (!deleteSelection()) {
                     if (mCursorPos < (int) mValueTemp.length())
                         mValueTemp.erase(mValueTemp.begin() + mCursorPos);
                 }
-            } else if (key == GLFW_KEY_ENTER) {
+            } else if (key == constants.enterKey()) {
                 if (!mCommitted)
                     focusEvent(false);
-            } else if (key == GLFW_KEY_A && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == constants.aKey() && modifiers == constants.commandMod()) {
                 mCursorPos = (int) mValueTemp.length();
                 mSelectionPos = 0;
-            } else if (key == GLFW_KEY_X && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == constants.xKey() && modifiers == constants.commandMod()) {
                 copySelection();
                 deleteSelection();
-            } else if (key == GLFW_KEY_C && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == constants.cKey() && modifiers == constants.commandMod()) {
                 copySelection();
-            } else if (key == GLFW_KEY_V && modifiers == SYSTEM_COMMAND_MOD) {
+            } else if (key == constants.vKey() && modifiers == constants.commandMod()) {
                 deleteSelection();
                 pasteFromClipboard();
             }
@@ -518,7 +520,9 @@ bool TextBox::copySelection() {
         if (begin > end)
             std::swap(begin, end);
 
-        glfwSetClipboardString(sc->glfwWindow(),
+        auto constants = get_window_handler_constants();
+
+        constants.setClipboard(sc->id(),
                                mValueTemp.substr(begin, end).c_str());
         return true;
     }
@@ -528,7 +532,8 @@ bool TextBox::copySelection() {
 
 void TextBox::pasteFromClipboard() {
     Screen *sc = dynamic_cast<Screen *>(this->window()->parent());
-    const char* cbstr = glfwGetClipboardString(sc->glfwWindow());
+    auto constants = get_window_handler_constants();
+    const char* cbstr = constants.getClipboard(sc->id()).c_str();
     if (cbstr)
         mValueTemp.insert(mCursorPos, std::string(cbstr));
 }
@@ -559,7 +564,8 @@ void TextBox::updateCursor(NVGcontext *, float lastx,
                            const NVGglyphPosition *glyphs, int size) {
     // handle mouse cursor events
     if (mMouseDownPos.x() != -1) {
-        if (mMouseDownModifier == GLFW_MOD_SHIFT) {
+        auto constants = get_window_handler_constants();
+        if (mMouseDownModifier == constants.shiftMod()) {
             if (mSelectionPos == -1)
                 mSelectionPos = mCursorPos;
         } else

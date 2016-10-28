@@ -16,22 +16,13 @@
 #include <nanogui/common.h>
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
-#if defined(NANOGUI_GLAD)
     #if defined(NANOGUI_SHARED) && !defined(GLAD_GLAPI_EXPORT)
         #define GLAD_GLAPI_EXPORT
     #endif
 
     #include <glad/glad.h>
-#else
-    #if defined(__APPLE__)
-        #define GLFW_INCLUDE_GLCOREARB
-    #else
-        #define GL_GLEXT_PROTOTYPES
-    #endif
-#endif
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
-#include <GLFW/glfw3.h>
 #include <nanovg.h>
 
 NAMESPACE_BEGIN(nanogui)

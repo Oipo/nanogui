@@ -16,6 +16,8 @@
 #include <stdint.h>
 #include <array>
 #include <vector>
+#include <functional>
+#include <set>
 
 /* Set to 1 to draw boxes around widgets */
 //#define NANOGUI_SHOW_WIDGET_BOUNDS 1
@@ -99,11 +101,9 @@
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
 struct NVGcontext { /* Opaque handle type, never de-referenced within NanoGUI */ };
-struct GLFWwindow { /* Opaque handle type, never de-referenced within NanoGUI */ };
 
 struct NVGcolor;
 struct NVGglyphPosition;
-struct GLFWcursor;
 
 #endif // DOXYGEN_SHOULD_SKIP_THIS
 
@@ -346,6 +346,177 @@ public:
     inline operator const NVGcolor &() const;
 };
 
+class WindowHandlerConstants {
+private:
+    int mPrimaryMouseButton;
+    int mSecondaryMouseButton;
+    int mMousePress;
+    int mMouseRelease;
+    int mKeyLeft;
+    int mKeyRight;
+    int mKeyUp;
+    int mKeyDown;
+    int mKeyHome;
+    int mKeyEnd;
+    int mKeyBackspace;
+    int mKeyDelete;
+    int mKeyEnter;
+    int mKeyA;
+    int mKeyX;
+    int mKeyC;
+    int mKeyV;
+    int mModShift;
+    int mModControl;
+    int mModCommand;
+
+    /* common */
+    std::function<double()> getTimeCallback;
+    std::function<bool(int)> getWindowVisibleCallback;
+    std::function<void(int, std::string)> setClipboardCallback;
+    std::function<std::string(int)> getClipboardCallback;
+
+    /* events */
+    std::vector<std::pair<int, std::function<void(double, double)>>> cursorPosCallbacks;
+    std::vector<std::pair<int, std::function<void(int, int, int)>>> mouseButtonCallbacks;
+    std::vector<std::pair<int, std::function<void(int, int, int, int)>>> keyCallbacks;
+    std::vector<std::pair<int, std::function<void(unsigned int)>>> unicodeCallbacks;
+    std::vector<std::pair<int, std::function<void(int, const char**)>>> dropCallbacks;
+    std::vector<std::pair<int, std::function<void(double, double)>>> scrollCallbacks;
+    std::vector<std::pair<int, std::function<void(int, int, float)>>> framebufferSizeCallbacks;
+public:
+    WindowHandlerConstants() : mPrimaryMouseButton(-1), mSecondaryMouseButton(-1), mMousePress(-1),
+        mMouseRelease(-1), mKeyLeft(-1), mKeyRight(-1), mKeyUp(-1), mKeyDown(-1), mKeyHome(-1), mKeyEnd(-1),
+        mKeyBackspace(-1), mKeyDelete(-1), mKeyEnter(-1), mKeyA(-1), mKeyX(-1), mKeyC(-1), mKeyV(-1), mModShift(-1),
+        mModControl(-1), mModCommand(-1) { }
+    /*
+     * \param primaryButton
+     *     Set to the value of your window handler. E.g. SDL_BUTTON_LEFT in SDL2 or
+     *     GLFW_MOUSE_BUTTON_1 in GLFW
+     */
+    WindowHandlerConstants(int const primaryMouseButton, int const secondaryMouseButton,
+        int const mousePress, int const mouseRelease, int const keyLeft, int const keyRight, int const keyUp,
+        int const keyDown, int const keyHome, int const keyEnd, int const keyBackspace, int const keyDelete,
+        int const keyEnter, int const keyA, int const keyX, int const keyC, int const keyV, int const modShift,
+        int const modCommand)
+        : mPrimaryMouseButton(primaryMouseButton), mSecondaryMouseButton(secondaryMouseButton),
+        mMousePress(mousePress), mMouseRelease(mouseRelease), mKeyLeft(keyLeft), mKeyRight(keyRight), mKeyUp(keyUp),
+        mKeyDown(keyDown), mKeyHome(keyHome), mKeyEnd(keyEnd), mKeyBackspace(keyBackspace), mKeyDelete(keyDelete),
+        mKeyEnter(keyEnter), mKeyA(keyA), mKeyX(keyX), mKeyC(keyC), mKeyV(keyV), mModShift(modShift),
+        mModCommand(modCommand)
+    { }
+
+    WindowHandlerConstants(WindowHandlerConstants&& constants) = default;
+    WindowHandlerConstants(const WindowHandlerConstants&) = default;
+
+    WindowHandlerConstants& operator=(const WindowHandlerConstants& other);
+
+    /* mouse buttons */
+
+    int primaryMouseButton() const;
+
+    int secondaryMouseButton() const;
+
+    int mousePress() const;
+
+    int mouseRelease() const;
+
+    /* keyboard buttons */
+
+    int leftKey() const;
+
+    int rightKey() const;
+
+    int downKey() const;
+
+    int upKey() const;
+
+    int homeKey() const;
+
+    int endKey() const;
+
+    int backspaceKey() const;
+
+    int deleteKey() const;
+
+    int enterKey() const;
+
+    int aKey() const;
+
+    int xKey() const;
+
+    int cKey() const;
+
+    int vKey() const;
+
+    int shiftMod() const;
+
+    int controlMod() const;
+
+    int commandMod() const;
+
+    /* common functions needed from window handling libraries */
+
+    double getTime() const;
+
+    void setGetTimeCallback(decltype(getTimeCallback) callback);
+
+    bool getWindowVisible(int windowId) const;
+
+    void setGetWindowVisibleCallback(decltype(getWindowVisibleCallback) callback);
+
+    void setClipboard(int windowId, std::string text);
+
+    void setSetClipboardCallback(decltype(setClipboardCallback) callback);
+
+    std::string getClipboard(int windowId) const;
+
+    void setGetClipboardCallback(decltype(getClipboardCallback) callback);
+
+    /* callbacks */
+
+    void addCursorPosCallback(int id, decltype(cursorPosCallbacks)::value_type::second_type callback);
+
+    void removeCursorPosCallback(int id);
+
+    void handleCursorPosEvent(int screenId, double x, double y);
+
+    void addMouseButtonCallback(int id, decltype(mouseButtonCallbacks)::value_type::second_type callback);
+
+    void removeMouseButtonCallback(int id);
+
+    void handleMouseButtonEvent(int screenId, int button, int action, int modifiers);
+
+    void addKeyCallback(int id, decltype(keyCallbacks)::value_type::second_type callback);
+
+    void removeKeyCallback(int id);
+
+    void handleKeyEvent(int screenId, int key, int scancode, int action, int mods);
+
+    void addUnicodeCallback(int id, decltype(unicodeCallbacks)::value_type::second_type callback);
+
+    void removeUnicodeCallback(int id);
+
+    void handleUnicodeEvent(int screenId, unsigned int codepoint);
+
+    void addDropCallback(int id, decltype(dropCallbacks)::value_type::second_type callback);
+
+    void removeDropCallback(int id);
+
+    void handleDropEvent(int screenId, int count, const char **filenames);
+
+    void addScrollCallback(int id, decltype(scrollCallbacks)::value_type::second_type callback);
+
+    void removeScrollCallback(int id);
+
+    void handleScrollEvent(int screenId, double x, double y);
+
+    void addFramebufferSizeCallback(int id, decltype(framebufferSizeCallbacks)::value_type::second_type callback);
+
+    void removeFramebufferSizeCallback(int id);
+
+    void handleFramebufferSizeEvent(int screenId, double x, double y, double pixelRatio);
+};
+
 // skip the forward declarations for the docs
 #ifndef DOXYGEN_SHOULD_SKIP_THIS
 
@@ -392,56 +563,22 @@ class Window;
  * is effectively a wrapper call to ``glfwInit()``, so if you are managing
  * OpenGL / GLFW on your own *do not call this method*.
  *
+ * \param WindowHandlerConstants
+ *     Set constants related to the used window handler. E.g. SDL_BUTTON_LEFT in SDL2 or
+ *     GLFW_MOUSE_BUTTON_1 in GLFW for the primary mouse button.
+ *
  * \rst
  * Refer to :ref:`nanogui_example_3` for how you might go about managing OpenGL
  * and GLFW on your own, while still using NanoGUI's classes.
  * \endrst
  */
-extern NANOGUI_EXPORT void init();
+extern NANOGUI_EXPORT void init(WindowHandlerConstants constants);
 
 /// Static shutdown; should be called before the application terminates.
 extern NANOGUI_EXPORT void shutdown();
 
-/**
- * \brief Enter the application main loop
- *
- * \param refresh
- *     NanoGUI issues a redraw call whenever an keyboard/mouse/.. event is
- *     received. In the absence of any external events, it enforces a redraw
- *     once every ``refresh`` milliseconds. To disable the refresh timer,
- *     specify a negative value here.
- *
- * \param detach
- *     This pararameter only exists in the Python bindings. When the active
- *     \c Screen instance is provided via the \c detach parameter, the
- *     ``mainloop()`` function becomes non-blocking and returns
- *     immediately (in this case, the main loop runs in parallel on a newly
- *     created thread). This feature is convenient for prototyping user
- *     interfaces on an interactive Python command prompt. When
- *     ``detach != None``, the function returns an opaque handle that
- *     will release any resources allocated by the created thread when the
- *     handle's ``join()`` method is invoked (or when it is garbage
- *     collected).
- *
- * \remark
- *     Unfortunately, Mac OS X strictly requires all event processing to take
- *     place on the application's main thread, which is fundamentally
- *     incompatible with this type of approach. Thus, NanoGUI relies on a
- *     rather crazy workaround on Mac OS (kudos to Dmitriy Morozov):
- *     ``mainloop()`` launches a new thread as before but then uses
- *     libcoro to swap the thread execution environment (stack, registers, ..)
- *     with the main thread. This means that the main application thread is
- *     hijacked and processes events in the main loop to satisfy the
- *     requirements on Mac OS, while the thread that actually returns from this
- *     function is the newly created one (paradoxical, as that may seem).
- *     Deleting or ``join()``ing the returned handle causes application to
- *     wait for the termination of the main loop and then swap the two thread
- *     environments back into their initial configuration.
- */
-extern NANOGUI_EXPORT void mainloop(int refresh = 50);
-
-/// Request the application main loop to terminate (e.g. if you detached mainloop).
-extern NANOGUI_EXPORT void leave();
+// internal helper function to get window handler constants
+extern WindowHandlerConstants const get_window_handler_constants();
 
 /**
  * \brief Open a native file open/save dialog.

@@ -40,6 +40,24 @@
 #include <cstdint>
 #include <memory>
 #include <utility>
+#include <thread>
+#include <chrono>
+
+#define GLFW_INCLUDE_NONE
+
+#if defined(_WIN32)
+#  define NOMINMAX
+#  undef APIENTRY
+
+#  define WIN32_LEAN_AND_MEAN
+#  include <windows.h>
+
+#  define GLFW_EXPOSE_NATIVE_WGL
+#  define GLFW_EXPOSE_NATIVE_WIN32
+#  include <GLFW/glfw3native.h>
+#endif
+
+#include <GLFW/glfw3.h>
 
 #if defined(__GNUC__)
 #  pragma GCC diagnostic ignored "-Wmissing-field-initializers"
@@ -140,7 +158,7 @@ private:
 
 class ExampleApplication : public nanogui::Screen {
 public:
-    ExampleApplication() : nanogui::Screen(Eigen::Vector2i(1024, 768), "NanoGUI Test") {
+    ExampleApplication() : nanogui::Screen(0, Eigen::Vector2i(1024, 768), 1) {
         using namespace nanogui;
 
         Window *window = new Window(this, "Button demo");
@@ -582,16 +600,124 @@ private:
 
 int main(int /* argc */, char ** /* argv */) {
     try {
-        nanogui::init();
+
+        #if !defined(_WIN32)
+           /* Avoid locale-related number parsing issues */
+           setlocale(LC_NUMERIC, "C");
+       #endif
+
+       glfwSetErrorCallback(
+           [](int error, const char *descr) {
+               std::cerr << "GLFW error " << error << ": " << descr << std::endl;
+           }
+       );
+
+       if (!glfwInit())
+           throw std::runtime_error("Could not initialize GLFW!");
+
+        glfwSetTime(0);
+
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+        glfwWindowHint(GLFW_SAMPLES, 0);
+        glfwWindowHint(GLFW_RED_BITS, 8);
+        glfwWindowHint(GLFW_GREEN_BITS, 8);
+        glfwWindowHint(GLFW_BLUE_BITS, 8);
+        glfwWindowHint(GLFW_ALPHA_BITS, 8);
+        glfwWindowHint(GLFW_STENCIL_BITS, 8);
+        glfwWindowHint(GLFW_DEPTH_BITS, 24);
+        glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
+        glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
+
+        auto mGLFWWindow = glfwCreateWindow(800, 600, "test", nullptr, nullptr);
+
+        if (!mGLFWWindow) {
+            throw std::runtime_error("Could not create an OpenGL 3.3 context!");
+        }
+
+        glfwMakeContextCurrent(mGLFWWindow);
+
+        if (!gladLoadGLLoader((GLADloadproc) glfwGetProcAddress))
+            throw std::runtime_error("Could not initialize GLAD!");
+        glGetError(); // pull and ignore unhandled errors like GL_INVALID_ENUM
+
+        std::array<int, 2> mFBSize;
+        glfwGetFramebufferSize(mGLFWWindow, &mFBSize[0], &mFBSize[1]);
+        glViewport(0, 0, mFBSize[0], mFBSize[1]);
+        glClearColor(0.3f, 0.3f, 0.32f, 1.f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        glfwSwapInterval(0);
+        glfwPollEvents(); //apple stuff
+
+        nanogui::WindowHandlerConstants constants(GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2, GLFW_PRESS, GLFW_RELEASE,
+        GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_HOME, GLFW_KEY_END, GLFW_KEY_BACKSPACE,
+        GLFW_KEY_DELETE, GLFW_KEY_ENTER, GLFW_KEY_A, GLFW_KEY_X, GLFW_KEY_C, GLFW_KEY_V, GLFW_MOD_SHIFT,
+        GLFW_MOD_SUPER);
+
+        constants.setGetTimeCallback([]() {
+            return glfwGetTime();
+        });
+        constants.setGetWindowVisibleCallback([&mGLFWWindow](int windowId) {
+            return glfwGetWindowAttrib(mGLFWWindow, GLFW_VISIBLE) != 0;
+        });
+        constants.setSetClipboardCallback([&mGLFWWindow](int windowId, std::string content) {
+            glfwSetClipboardString(mGLFWWindow, content.c_str());
+        });
+        constants.setGetClipboardCallback([&mGLFWWindow](int windowId) {
+            return std::string(glfwGetClipboardString(mGLFWWindow));
+        });
+
+        nanogui::init(constants);
 
         {
             nanogui::ref<ExampleApplication> app = new ExampleApplication();
             app->drawAll();
             app->setVisible(true);
-            nanogui::mainloop();
+
+            std::thread refresh_thread;
+            bool mainloop_active = true;
+            int refresh = 50;
+            if (refresh > 0) {
+                /* If there are no mouse/keyboard events, try to refresh the
+                   view roughly every 50 ms (default); this is to support animations
+                   such as progress bars while keeping the system load
+                   reasonably low */
+                refresh_thread = std::thread(
+                    [refresh, &mainloop_active]() {
+                        std::chrono::milliseconds time(refresh);
+                        while (mainloop_active) {
+                            std::this_thread::sleep_for(time);
+                            glfwPostEmptyEvent();
+                        }
+                    }
+                );
+            }
+
+
+            while (mainloop_active) {
+                if (glfwWindowShouldClose(mGLFWWindow)) {
+                    mainloop_active = false;
+                    break;
+                }
+                app->drawAll();
+
+                glfwSwapBuffers(mGLFWWindow);
+                /* Wait for mouse/keyboard or empty refresh events */
+                glfwWaitEvents();
+            }
+
+            refresh_thread.join();
+
+            /* Process events once more */
+            glfwPollEvents();
         }
 
         nanogui::shutdown();
+
+        glfwDestroyWindow(mGLFWWindow);
     } catch (const std::runtime_error &e) {
         std::string error_msg = std::string("Caught a fatal error: ") + std::string(e.what());
         #if defined(_WIN32)
@@ -599,8 +725,9 @@ int main(int /* argc */, char ** /* argv */) {
         #else
             std::cerr << error_msg << endl;
         #endif
-        return -1;
     }
+
+    glfwTerminate();
 
     return 0;
 }

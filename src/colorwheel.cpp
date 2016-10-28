@@ -143,7 +143,8 @@ void ColorWheel::draw(NVGcontext *ctx) {
 bool ColorWheel::mouseButtonEvent(const Vector2i &p, int button, bool down,
                                   int modifiers) {
     Widget::mouseButtonEvent(p, button, down, modifiers);
-    if (!mEnabled || button != GLFW_MOUSE_BUTTON_1)
+    auto constants = get_window_handler_constants();
+    if (!mEnabled || button != constants.primaryMouseButton())
         return false;
 
     if (down) {
@@ -321,4 +322,3 @@ bool ColorWheel::load(Serializer &s) {
 }
 
 NAMESPACE_END(nanogui)
-

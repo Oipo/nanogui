@@ -6,22 +6,16 @@ if (POLICY CMP0058)
   cmake_policy(SET CMP0058 NEW)
 endif()
 
-if (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw/src")
-  message(FATAL_ERROR "The NanoGUI dependency repositories (GLFW, etc.) are missing! "
+if (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/ext/nanovg/src")
+  message(FATAL_ERROR "The NanoGUI dependency repositories (NanoVG, etc.) are missing! "
     "You probably did not clone the project with --recursive. It is possible to recover "
     "by calling \"git submodule update --init --recursive\"")
 endif()
 
-if (WIN32)
-  set(NANOGUI_USE_GLAD_DEFAULT ON)
-else()
-  set(NANOGUI_USE_GLAD_DEFAULT OFF)
-endif()
 
 option(NANOGUI_BUILD_EXAMPLE "Build NanoGUI example application?" ON)
 option(NANOGUI_BUILD_SHARED  "Build NanoGUI as a shared library?" ON)
-option(NANOGUI_BUILD_PYTHON  "Build a Python plugin for NanoGUI?" ON)
-option(NANOGUI_USE_GLAD      "Use Glad OpenGL loader library?" ${NANOGUI_USE_GLAD_DEFAULT})
+option(NANOGUI_BUILD_PYTHON  "Build a Python plugin for NanoGUI?" OFF)
 option(NANOGUI_INSTALL       "Install NanoGUI on `make install`?" ON)
 
 set(NANOGUI_PYTHON_VERSION "" CACHE STRING "Python version to use for compiling the Python plugin")
@@ -49,20 +43,15 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
 endif()
 string(TOUPPER "${CMAKE_BUILD_TYPE}" U_CMAKE_BUILD_TYPE)
 
-set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL " " FORCE)
-set(GLFW_BUILD_TESTS OFF CACHE BOOL " " FORCE)
-set(GLFW_BUILD_DOCS OFF CACHE BOOL " " FORCE)
-set(GLFW_BUILD_INSTALL OFF CACHE BOOL " " FORCE)
-set(GLFW_INSTALL OFF CACHE BOOL " " FORCE)
 set(BUILD_SHARED_LIBS ${NANOGUI_BUILD_SHARED} CACHE BOOL " " FORCE)
+
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wno-deprecated-declarations")
 
 if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   # Quench annoying deprecation warnings when compiling GLFW on OSX
+  # Maybe not necessary anymore now that GLFW is gone?
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-declarations")
 endif()
-
-# Compile GLFW
-add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw" "ext_build/glfw")
 
 # Python support: add NANOGUI_PYTHON flag to all targets
 if (NANOGUI_BUILD_PYTHON)
@@ -181,25 +170,29 @@ if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -stdlib=libc++ -lc++abi")
 endif()
 
-if (NANOGUI_USE_GLAD)
-  # Build and include GLAD on Windows
-  list(APPEND LIBNANOGUI_EXTRA_SOURCE
-     "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/src/glad.c"
-	 "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/include/glad/glad.h"
-	 "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/include/KHR/khrplatform.h")
-  if (MSVC)
-    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/src/glad.c"
-      PROPERTIES COMPILE_FLAGS "/wd4055 ")
-  endif()
-  include_directories(ext/glad/include)
-  list(APPEND NANOGUI_EXTRA_DEFS -DNANOGUI_GLAD)
-  list(APPEND NANOGUI_EXTRA_INCS "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/include")
+
+# Build and include GLAD on Windows
+list(APPEND LIBNANOGUI_EXTRA_SOURCE
+  "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/src/glad.c"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/include/glad/glad.h"
+  "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/include/KHR/khrplatform.h")
+if (MSVC)
+  set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/src/glad.c"
+   PROPERTIES COMPILE_FLAGS "/wd4055 ")
 endif()
+include_directories(ext/glad/include)
+list(APPEND NANOGUI_EXTRA_DEFS -DNANOGUI_GLAD)
+list(APPEND NANOGUI_EXTRA_INCS "${CMAKE_CURRENT_SOURCE_DIR}/ext/glad/include")
 
 list(APPEND NANOGUI_EXTRA_INCS
-  "${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw/include"
   "${CMAKE_CURRENT_SOURCE_DIR}/ext/nanovg/src"
 )
+
+if(NANOGUI_BUILD_EXAMPLE)
+  list(APPEND NANOGUI_EXTRA_INCS
+    "${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw/include"
+  )
+endif()
 
 if (NOT NANOGUI_EIGEN_INCLUDE_DIR)
   set(NANOGUI_EIGEN_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/ext/eigen")
@@ -228,7 +221,7 @@ elseif(CMAKE_SYSTEM MATCHES "Linux" OR CMAKE_SYSTEM_NAME MATCHES "BSD")
   endif()
 endif()
 
-include_directories(${NANOGUI_EIGEN_INCLUDE_DIR} ext/glfw/include ext/nanovg/src include ${CMAKE_CURRENT_BINARY_DIR})
+include_directories(${NANOGUI_EIGEN_INCLUDE_DIR} ext/nanovg/src include ${CMAKE_CURRENT_BINARY_DIR})
 
 # Run simple C converter to put font files into the data segment
 add_executable(bin2c resources/bin2c.c)
@@ -307,11 +300,11 @@ add_library(nanogui-obj OBJECT
   include/nanogui/serializer/opengl.h
   include/nanogui/serializer/sparse.h
   src/serializer.cpp
+  src/windowhandlerconstants.cpp
 )
 
 add_library(nanogui ${NANOGUI_LIBRARY_TYPE}
   $<TARGET_OBJECTS:nanogui-obj>
-  $<TARGET_OBJECTS:glfw_objects>
 )
 
 if (${NANOGUI_LIBRARY_TYPE} MATCHES "SHARED")
@@ -321,7 +314,7 @@ endif()
 # Compile/link flags for NanoGUI
 set_property(TARGET nanogui-obj APPEND PROPERTY COMPILE_DEFINITIONS "NANOGUI_BUILD")
 
-if (NANOGUI_USE_GLAD AND NANOGUI_BUILD_SHARED)
+if (NANOGUI_BUILD_SHARED)
   set_property(TARGET nanogui-obj APPEND PROPERTY COMPILE_DEFINITIONS
     "GLAD_GLAPI_EXPORT;GLAD_GLAPI_EXPORT_BUILD")
 endif()
@@ -337,11 +330,6 @@ if (NANOGUI_INSTALL)
 
   install(DIRECTORY include/nanogui DESTINATION include
           FILES_MATCHING PATTERN "*.h")
-endif()
-
-if (NANOGUI_BUILD_SHARED)
-  # When GLFW is merged into the NanoGUI library, this flag must be specified
-  set_property(TARGET nanogui-obj APPEND PROPERTY COMPILE_DEFINITIONS "_GLFW_BUILD_DLL")
 endif()
 
 if (NANOGUI_BUILD_SHARED AND NOT ${U_CMAKE_BUILD_TYPE} MATCHES DEB)
@@ -371,18 +359,31 @@ endif()
 
 # Build example application if desired
 if(NANOGUI_BUILD_EXAMPLE)
-  add_executable(example1 src/example1.cpp)
-  add_executable(example2 src/example2.cpp)
-  add_executable(example3 src/example3.cpp)
+  set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL " " FORCE)
+  set(GLFW_BUILD_TESTS OFF CACHE BOOL " " FORCE)
+  set(GLFW_BUILD_DOCS OFF CACHE BOOL " " FORCE)
+  set(GLFW_BUILD_INSTALL OFF CACHE BOOL " " FORCE)
+  set(GLFW_INSTALL OFF CACHE BOOL " " FORCE)
+
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw" "ext_build/glfw")
+  add_executable(example0 src/example0.cpp $<TARGET_OBJECTS:glfw_objects>)
+  add_executable(example1 src/example1.cpp $<TARGET_OBJECTS:glfw_objects>)
+  #add_executable(example2 src/example2.cpp)
+  #add_executable(example3 src/example3.cpp)
+  target_link_libraries(example0 nanogui ${NANOGUI_EXTRA_LIBS})
   target_link_libraries(example1 nanogui ${NANOGUI_EXTRA_LIBS})
-  target_link_libraries(example2 nanogui ${NANOGUI_EXTRA_LIBS})
-  target_link_libraries(example3 nanogui ${NANOGUI_EXTRA_LIBS})
+  #target_link_libraries(example2 nanogui ${NANOGUI_EXTRA_LIBS})
+  #target_link_libraries(example3 nanogui ${NANOGUI_EXTRA_LIBS})
+  include_directories(${NANOGUI_EIGEN_INCLUDE_DIR} ext/glfw/include)
+  # add_library(example1 ${NANOGUI_LIBRARY_TYPE} $<TARGET_OBJECTS:glfw_objects>)
+  # set_target_properties(glfw_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
   # Copy icons for example application
   file(COPY resources/icons DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
   if (NANOGUI_INSTALL)
-    install(TARGETS example1 example2 example3
+  #example2 example3
+    install(TARGETS example1
             RUNTIME DESTINATION bin)
   endif()
 endif()
@@ -406,7 +407,6 @@ endif()
 if (NANOGUI_BUILD_PYTHON)
   # Need PIC code in libnanogui even when compiled as a static library
   set_target_properties(nanogui-obj PROPERTIES POSITION_INDEPENDENT_CODE ON)
-  set_target_properties(glfw_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
   include_directories("ext/pybind11/include" ${PYTHON_INCLUDE_DIR})
   add_library(nanogui-python-obj OBJECT
