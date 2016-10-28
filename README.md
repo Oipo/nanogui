@@ -1,3 +1,11 @@
+# Why this fork?
+
+NanoGUI was build with a hard dependency on GLFW. I'm making a game with SDL2 and I can foresee others making games with other systems, and still wanting to use NanoGUI
+
+# Current status
+
+example1.cpp shows a window with some stuff in it, but it's rather glitchy. Python bindings are currently not compiling. Before, NanoGUI had an optional dependency on GLAD, which is now always included.
+
 # NanoGUI
 
 [![Documentation Status](https://readthedocs.org/projects/nanogui/badge/?version=latest)](http://nanogui.readthedocs.org/en/latest/?badge=latest)
