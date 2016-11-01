@@ -87,7 +87,7 @@ bool Widget::mouseButtonEvent(const Vector2i &p, int button, bool down, int modi
             return true;
     }
     auto constants = get_window_handler_constants();
-    if (button == constants.primaryMouseButton() && down && !mFocused)
+    if (button == constants->primaryMouseButton() && down && !mFocused)
         requestFocus();
     return false;
 }

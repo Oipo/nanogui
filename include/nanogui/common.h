@@ -405,10 +405,10 @@ public:
         mModCommand(modCommand)
     { }
 
-    WindowHandlerConstants(WindowHandlerConstants&& constants) = default;
-    WindowHandlerConstants(const WindowHandlerConstants&) = default;
+    WindowHandlerConstants(WindowHandlerConstants&& constants) = delete;
+    WindowHandlerConstants(const WindowHandlerConstants&) = delete;
 
-    WindowHandlerConstants& operator=(const WindowHandlerConstants& other);
+    //WindowHandlerConstants& operator=(const WindowHandlerConstants& other);
 
     /* mouse buttons */
 
@@ -572,13 +572,13 @@ class Window;
  * and GLFW on your own, while still using NanoGUI's classes.
  * \endrst
  */
-extern NANOGUI_EXPORT void init(WindowHandlerConstants constants);
+extern NANOGUI_EXPORT void init(WindowHandlerConstants* constants);
 
 /// Static shutdown; should be called before the application terminates.
 extern NANOGUI_EXPORT void shutdown();
 
 // internal helper function to get window handler constants
-extern WindowHandlerConstants const get_window_handler_constants();
+extern WindowHandlerConstants* get_window_handler_constants();
 
 /**
  * \brief Open a native file open/save dialog.

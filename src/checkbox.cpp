@@ -29,7 +29,7 @@ bool CheckBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
         return false;
 
     auto constants = get_window_handler_constants();
-    if (button == constants.primaryMouseButton()) {
+    if (button == constants->primaryMouseButton()) {
         if (down) {
             mPushed = true;
         } else if (mPushed) {

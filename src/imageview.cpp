@@ -159,7 +159,7 @@ void ImageView::zoom(int amount, const Vector2f& focusPosition) {
 
 bool ImageView::mouseDragEvent(const Vector2i& p, const Vector2i& rel, int button, int /*modifiers*/) {
     auto constants = get_window_handler_constants();
-    if ((button & (1 << constants.primaryMouseButton())) != 0 && !mFixedOffset) {
+    if ((button & (1 << constants->primaryMouseButton())) != 0 && !mFixedOffset) {
         setImageCoordinateAt((p + rel).cast<float>(), imageCoordinateAt(p.cast<float>()));
         return true;
     }
@@ -191,33 +191,33 @@ bool ImageView::scrollEvent(const Vector2i& p, const Vector2f& rel) {
 bool ImageView::keyboardEvent(int key, int /*scancode*/, int action, int modifiers) {
     if (action) {
         auto constants = get_window_handler_constants();
-        if(key == constants.leftKey()) {
+        if(key == constants->leftKey()) {
             if (!mFixedOffset) {
-                if (constants.controlMod() & modifiers)
+                if (constants->controlMod() & modifiers)
                     moveOffset(Vector2f(30, 0));
                 else
                     moveOffset(Vector2f(10, 0));
                 return true;
             }
-        } else if(key == constants.rightKey()) {
+        } else if(key == constants->rightKey()) {
             if (!mFixedOffset) {
-                if (constants.controlMod() & modifiers)
+                if (constants->controlMod() & modifiers)
                     moveOffset(Vector2f(-30, 0));
                 else
                     moveOffset(Vector2f(-10, 0));
                 return true;
             }
-        } else if(key == constants.downKey()) {
+        } else if(key == constants->downKey()) {
             if (!mFixedOffset) {
-                if (constants.controlMod() & modifiers)
+                if (constants->controlMod() & modifiers)
                     moveOffset(Vector2f(0, -30));
                 else
                     moveOffset(Vector2f(0, -10));
                 return true;
             }
-        } else if(key == constants.upKey()) {
+        } else if(key == constants->upKey()) {
             if (!mFixedOffset) {
-                if (constants.controlMod() & modifiers)
+                if (constants->controlMod() & modifiers)
                     moveOffset(Vector2f(0, 30));
                 else
                     moveOffset(Vector2f(0, 10));

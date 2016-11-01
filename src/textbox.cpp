@@ -282,7 +282,7 @@ bool TextBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
                                int modifiers) {
 
     auto constants = get_window_handler_constants();
-    if (button == constants.primaryMouseButton() && down && !mFocused) {
+    if (button == constants->primaryMouseButton() && down && !mFocused) {
         if (!mSpinnable || spinArea(p) == SpinArea::None) /* not on scrolling arrows */
             requestFocus();
     }
@@ -292,7 +292,7 @@ bool TextBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
             mMouseDownPos = p;
             mMouseDownModifier = modifiers;
 
-            double time = constants.getTime();
+            double time = constants->getTime();
             if (time - mLastClick < 0.25) {
                 /* Double-click: select all text */
                 mSelectionPos = 0;
@@ -311,7 +311,7 @@ bool TextBox::mouseButtonEvent(const Vector2i &p, int button, bool down,
                 mMouseDownPos = p;
                 mMouseDownModifier = modifiers;
 
-                double time = constants.getTime();
+                double time = constants->getTime();
                 if (time - mLastClick < 0.25) {
                     /* Double-click: reset to default value */
                     mValue = mDefaultValue;
@@ -400,9 +400,9 @@ bool TextBox::focusEvent(bool focused) {
 bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifiers) {
     if (mEditable && focused()) {
         auto constants = get_window_handler_constants();
-        if (action == constants.mousePress() || action == constants.mouseRelease()) {
-            if (key == constants.leftKey()) {
-                if (modifiers == constants.shiftMod()) {
+        if (action == constants->mousePress() || action == constants->mouseRelease()) {
+            if (key == constants->leftKey()) {
+                if (modifiers == constants->shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -411,8 +411,8 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
 
                 if (mCursorPos > 0)
                     mCursorPos--;
-            } else if (key == constants.rightKey()) {
-                if (modifiers == constants.shiftMod()) {
+            } else if (key == constants->rightKey()) {
+                if (modifiers == constants->shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -421,8 +421,8 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
 
                 if (mCursorPos < (int) mValueTemp.length())
                     mCursorPos++;
-            } else if (key == constants.homeKey()) {
-                if (modifiers == constants.shiftMod()) {
+            } else if (key == constants->homeKey()) {
+                if (modifiers == constants->shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -430,8 +430,8 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
                 }
 
                 mCursorPos = 0;
-            } else if (key == constants.endKey()) {
-                if (modifiers == constants.shiftMod()) {
+            } else if (key == constants->endKey()) {
+                if (modifiers == constants->shiftMod()) {
                     if (mSelectionPos == -1)
                         mSelectionPos = mCursorPos;
                 } else {
@@ -439,30 +439,30 @@ bool TextBox::keyboardEvent(int key, int /* scancode */, int action, int modifie
                 }
 
                 mCursorPos = (int) mValueTemp.size();
-            } else if (key == constants.backspaceKey()) {
+            } else if (key == constants->backspaceKey()) {
                 if (!deleteSelection()) {
                     if (mCursorPos > 0) {
                         mValueTemp.erase(mValueTemp.begin() + mCursorPos - 1);
                         mCursorPos--;
                     }
                 }
-            } else if (key == constants.deleteKey()) {
+            } else if (key == constants->deleteKey()) {
                 if (!deleteSelection()) {
                     if (mCursorPos < (int) mValueTemp.length())
                         mValueTemp.erase(mValueTemp.begin() + mCursorPos);
                 }
-            } else if (key == constants.enterKey()) {
+            } else if (key == constants->enterKey()) {
                 if (!mCommitted)
                     focusEvent(false);
-            } else if (key == constants.aKey() && modifiers == constants.commandMod()) {
+            } else if (key == constants->aKey() && modifiers == constants->commandMod()) {
                 mCursorPos = (int) mValueTemp.length();
                 mSelectionPos = 0;
-            } else if (key == constants.xKey() && modifiers == constants.commandMod()) {
+            } else if (key == constants->xKey() && modifiers == constants->commandMod()) {
                 copySelection();
                 deleteSelection();
-            } else if (key == constants.cKey() && modifiers == constants.commandMod()) {
+            } else if (key == constants->cKey() && modifiers == constants->commandMod()) {
                 copySelection();
-            } else if (key == constants.vKey() && modifiers == constants.commandMod()) {
+            } else if (key == constants->vKey() && modifiers == constants->commandMod()) {
                 deleteSelection();
                 pasteFromClipboard();
             }
@@ -522,7 +522,7 @@ bool TextBox::copySelection() {
 
         auto constants = get_window_handler_constants();
 
-        constants.setClipboard(sc->id(),
+        constants->setClipboard(sc->id(),
                                mValueTemp.substr(begin, end).c_str());
         return true;
     }
@@ -533,7 +533,7 @@ bool TextBox::copySelection() {
 void TextBox::pasteFromClipboard() {
     Screen *sc = dynamic_cast<Screen *>(this->window()->parent());
     auto constants = get_window_handler_constants();
-    const char* cbstr = constants.getClipboard(sc->id()).c_str();
+    const char* cbstr = constants->getClipboard(sc->id()).c_str();
     if (cbstr)
         mValueTemp.insert(mCursorPos, std::string(cbstr));
 }
@@ -565,7 +565,7 @@ void TextBox::updateCursor(NVGcontext *, float lastx,
     // handle mouse cursor events
     if (mMouseDownPos.x() != -1) {
         auto constants = get_window_handler_constants();
-        if (mMouseDownModifier == constants.shiftMod()) {
+        if (mMouseDownModifier == constants->shiftMod()) {
             if (mSelectionPos == -1)
                 mSelectionPos = mCursorPos;
         } else

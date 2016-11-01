@@ -51,13 +51,13 @@ Screen::Screen(int id, const Vector2i &size, float pixelRatio)
 
 void Screen::initialize(int id, const Vector2i &size, float pixelRatio) {
     auto constants = get_window_handler_constants();
-    constants.addCursorPosCallback(id, std::bind(&Screen::cursorPosCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
-    constants.addMouseButtonCallback(id, std::bind(&Screen::mouseButtonCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-    constants.addKeyCallback(id, std::bind(&Screen::keyCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
-    constants.addUnicodeCallback(id, std::bind(&Screen::charCallbackEvent, this, std::placeholders::_1));
-    constants.addDropCallback(id, std::bind(&Screen::dropCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
-    constants.addScrollCallback(id, std::bind(&Screen::scrollCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
-    constants.addFramebufferSizeCallback(id, std::bind(&Screen::resizeCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    constants->addCursorPosCallback(id, std::bind(&Screen::cursorPosCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
+    constants->addMouseButtonCallback(id, std::bind(&Screen::mouseButtonCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+    constants->addKeyCallback(id, std::bind(&Screen::keyCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
+    constants->addUnicodeCallback(id, std::bind(&Screen::charCallbackEvent, this, std::placeholders::_1));
+    constants->addDropCallback(id, std::bind(&Screen::dropCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
+    constants->addScrollCallback(id, std::bind(&Screen::scrollCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
+    constants->addFramebufferSizeCallback(id, std::bind(&Screen::resizeCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
     mId = id;
     mPixelRatio = pixelRatio;
@@ -82,12 +82,12 @@ void Screen::initialize(int id, const Vector2i &size, float pixelRatio) {
     if (mNVGContext == nullptr)
         throw std::runtime_error("Could not initialize NanoVG!");
 
-    mVisible = constants.getWindowVisible(id);
+    mVisible = constants->getWindowVisible(id);
     setTheme(new Theme(mNVGContext));
     mMousePos = Vector2i::Zero();
     mMouseState = mModifiers = 0;
     mDragActive = false;
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
     mProcessEvents = true;
 
     /* TODO for (int i=0; i < (int) Cursor::CursorCount; ++i)
@@ -128,7 +128,7 @@ void Screen::drawWidgets() {
     draw(mNVGContext);
 
     auto constants = get_window_handler_constants();
-    double elapsed = constants.getTime() - mLastInteraction;
+    double elapsed = constants->getTime() - mLastInteraction;
 
     if (elapsed > 0.5f) {
         /* Draw tooltips */
@@ -207,7 +207,7 @@ bool Screen::cursorPosCallbackEvent(double x, double y) {
 
     bool ret = false;
     auto constants = get_window_handler_constants();
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
     try {
         p -= Vector2i(1, 2);
 
@@ -238,7 +238,7 @@ bool Screen::cursorPosCallbackEvent(double x, double y) {
 bool Screen::mouseButtonCallbackEvent(int button, int action, int modifiers) {
     mModifiers = modifiers;
     auto constants = get_window_handler_constants();
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
     try {
         if (mFocusPath.size() > 1) {
             const Window *window =
@@ -249,13 +249,13 @@ bool Screen::mouseButtonCallbackEvent(int button, int action, int modifiers) {
             }
         }
 
-        if (action == constants.mousePress())
+        if (action == constants->mousePress())
             mMouseState |= 1 << button;
         else
             mMouseState &= ~(1 << button);
 
         auto dropWidget = findWidget(mMousePos);
-        if (mDragActive && action == constants.mouseRelease() &&
+        if (mDragActive && action == constants->mouseRelease() &&
             dropWidget != mDragWidget)
             mDragWidget->mouseButtonEvent(
                 mMousePos - mDragWidget->parent()->absolutePosition(), button,
@@ -266,7 +266,7 @@ bool Screen::mouseButtonCallbackEvent(int button, int action, int modifiers) {
             glfwSetCursor(mGLFWWindow, mCursors[(int) mCursor]);
         }*/
 
-        if (action == constants.mousePress() && (button == constants.primaryMouseButton() || button == constants.secondaryMouseButton())) {
+        if (action == constants->mousePress() && (button == constants->primaryMouseButton() || button == constants->secondaryMouseButton())) {
             mDragWidget = findWidget(mMousePos);
             if (mDragWidget == this)
                 mDragWidget = nullptr;
@@ -278,7 +278,7 @@ bool Screen::mouseButtonCallbackEvent(int button, int action, int modifiers) {
             mDragWidget = nullptr;
         }
 
-        return mouseButtonEvent(mMousePos, button, action == constants.mousePress(),
+        return mouseButtonEvent(mMousePos, button, action == constants->mousePress(),
                                 mModifiers);
     } catch (const std::exception &e) {
         std::cerr << "Caught exception in event handler: " << e.what() << std::endl;
@@ -288,7 +288,7 @@ bool Screen::mouseButtonCallbackEvent(int button, int action, int modifiers) {
 
 bool Screen::keyCallbackEvent(int key, int scancode, int action, int mods) {
     auto constants = get_window_handler_constants();
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
     try {
         return keyboardEvent(key, scancode, action, mods);
     } catch (const std::exception &e) {
@@ -299,7 +299,7 @@ bool Screen::keyCallbackEvent(int key, int scancode, int action, int mods) {
 
 bool Screen::charCallbackEvent(unsigned int codepoint) {
     auto constants = get_window_handler_constants();
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
     try {
         return keyboardCharacterEvent(codepoint);
     } catch (const std::exception &e) {
@@ -318,7 +318,7 @@ bool Screen::dropCallbackEvent(int count, const char **filenames) {
 
 bool Screen::scrollCallbackEvent(double x, double y) {
     auto constants = get_window_handler_constants();
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
     try {
         if (mFocusPath.size() > 1) {
             const Window *window =
@@ -348,7 +348,7 @@ bool Screen::resizeCallbackEvent(int w, int h, float pixelRatio) {
         return false;
 
     auto constants = get_window_handler_constants();
-    mLastInteraction = constants.getTime();
+    mLastInteraction = constants->getTime();
 
     try {
         return resizeEvent(mSize);

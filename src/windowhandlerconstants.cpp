@@ -1,5 +1,5 @@
 /*
-    src/windowhandlerconstants.cpp -- class to be used as global for handling different windowing libraries
+    src/windowhandlerconstants->cpp -- class to be used as global for handling different windowing libraries
 
     NanoGUI was developed by Wenzel Jakob <wenzel.jakob@epfl.ch>.
     The widget drawing code is based on the NanoVG demo application
@@ -12,45 +12,6 @@
 #include <nanogui/common.h>
 
 NAMESPACE_BEGIN(nanogui)
-
-WindowHandlerConstants& WindowHandlerConstants::operator=(const WindowHandlerConstants& other) {
-    if(this != &other) {
-        mPrimaryMouseButton = other.mPrimaryMouseButton;
-        mSecondaryMouseButton = other.mSecondaryMouseButton;
-        mMousePress = other.mMousePress;
-        mMouseRelease = other.mMouseRelease;
-        mKeyLeft = other.mKeyLeft;
-        mKeyRight = other.mKeyRight;
-        mKeyUp = other.mKeyUp;
-        mKeyDown = other.mKeyDown;
-        mKeyHome = other.mKeyHome;
-        mKeyEnd = other.mKeyEnd;
-        mKeyBackspace = other.mKeyBackspace;
-        mKeyDelete = other.mKeyDelete;
-        mKeyEnter = other.mKeyEnter;
-        mKeyA = other.mKeyA;
-        mKeyX = other.mKeyX;
-        mKeyC = other.mKeyC;
-        mKeyV = other.mKeyV;
-        mModShift = other.mModShift;
-        mModControl = other.mModControl;
-        mModCommand = other.mModCommand;
-
-        getTimeCallback = other.getTimeCallback;
-        getWindowVisibleCallback = other.getWindowVisibleCallback;
-        setClipboardCallback = other.setClipboardCallback;
-        getClipboardCallback = other.getClipboardCallback;
-
-        cursorPosCallbacks = other.cursorPosCallbacks;
-        mouseButtonCallbacks = other.mouseButtonCallbacks;
-        keyCallbacks = other.keyCallbacks;
-        unicodeCallbacks = other.unicodeCallbacks;
-        dropCallbacks = other.dropCallbacks;
-        scrollCallbacks = other.scrollCallbacks;
-        framebufferSizeCallbacks = other.framebufferSizeCallbacks;
-    }
-    return *this;
-}
 
 /* mouse buttons */
 

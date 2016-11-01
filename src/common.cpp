@@ -29,11 +29,9 @@
 
 NAMESPACE_BEGIN(nanogui)
 
-//extern std::map<GLFWwindow *, Screen *> __nanogui_screens;
+WindowHandlerConstants * __window_handler_constants = nullptr;
 
-WindowHandlerConstants __window_handler_constants;
-
-void init(WindowHandlerConstants constants) {
+void init(WindowHandlerConstants * constants) {
     __window_handler_constants = constants;
 }
 
@@ -42,7 +40,7 @@ void shutdown() {
 
 }
 
-WindowHandlerConstants const get_window_handler_constants() {
+WindowHandlerConstants * get_window_handler_constants() {
     return __window_handler_constants;
 }
 

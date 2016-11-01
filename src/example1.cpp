@@ -80,6 +80,8 @@
 #  include <windows.h>
 #endif
 
+#define SCREEN_ID 0
+
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -158,7 +160,7 @@ private:
 
 class ExampleApplication : public nanogui::Screen {
 public:
-    ExampleApplication() : nanogui::Screen(0, Eigen::Vector2i(1024, 768), 1) {
+    ExampleApplication() : nanogui::Screen(SCREEN_ID, Eigen::Vector2i(1024, 768), 1) {
         using namespace nanogui;
 
         Window *window = new Window(this, "Button demo");
@@ -598,6 +600,11 @@ private:
     int mCurrentImage;
 };
 
+nanogui::WindowHandlerConstants constants(GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2, GLFW_PRESS, GLFW_RELEASE,
+GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_HOME, GLFW_KEY_END, GLFW_KEY_BACKSPACE,
+GLFW_KEY_DELETE, GLFW_KEY_ENTER, GLFW_KEY_A, GLFW_KEY_X, GLFW_KEY_C, GLFW_KEY_V, GLFW_MOD_SHIFT,
+GLFW_MOD_SUPER);
+
 int main(int /* argc */, char ** /* argv */) {
     try {
 
@@ -652,25 +659,28 @@ int main(int /* argc */, char ** /* argv */) {
         glfwSwapInterval(0);
         glfwPollEvents(); //apple stuff
 
-        nanogui::WindowHandlerConstants constants(GLFW_MOUSE_BUTTON_1, GLFW_MOUSE_BUTTON_2, GLFW_PRESS, GLFW_RELEASE,
-        GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_HOME, GLFW_KEY_END, GLFW_KEY_BACKSPACE,
-        GLFW_KEY_DELETE, GLFW_KEY_ENTER, GLFW_KEY_A, GLFW_KEY_X, GLFW_KEY_C, GLFW_KEY_V, GLFW_MOD_SHIFT,
-        GLFW_MOD_SUPER);
-
         constants.setGetTimeCallback([]() {
             return glfwGetTime();
         });
-        constants.setGetWindowVisibleCallback([&mGLFWWindow](int windowId) {
+        constants.setGetWindowVisibleCallback([&mGLFWWindow](int) {
             return glfwGetWindowAttrib(mGLFWWindow, GLFW_VISIBLE) != 0;
         });
-        constants.setSetClipboardCallback([&mGLFWWindow](int windowId, std::string content) {
+        constants.setSetClipboardCallback([&mGLFWWindow](int, std::string content) {
             glfwSetClipboardString(mGLFWWindow, content.c_str());
         });
-        constants.setGetClipboardCallback([&mGLFWWindow](int windowId) {
+        constants.setGetClipboardCallback([&mGLFWWindow](int) {
             return std::string(glfwGetClipboardString(mGLFWWindow));
         });
 
-        nanogui::init(constants);
+        nanogui::init(&constants);
+
+        glfwSetCursorPosCallback(mGLFWWindow, [](GLFWwindow*, double x, double y) {
+            constants.handleCursorPosEvent(SCREEN_ID, x, y);
+        });
+
+        glfwSetMouseButtonCallback(mGLFWWindow, [](GLFWwindow*, int button, int action, int modifiers) {
+            constants.handleMouseButtonEvent(SCREEN_ID, button, action, modifiers);
+        });
 
         {
             nanogui::ref<ExampleApplication> app = new ExampleApplication();
@@ -702,6 +712,9 @@ int main(int /* argc */, char ** /* argv */) {
                     mainloop_active = false;
                     break;
                 }
+                glClearColor(0.3f, 0.3f, 0.32f, 1.f);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
                 app->drawAll();
 
                 glfwSwapBuffers(mGLFWWindow);

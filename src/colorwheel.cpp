@@ -144,7 +144,7 @@ bool ColorWheel::mouseButtonEvent(const Vector2i &p, int button, bool down,
                                   int modifiers) {
     Widget::mouseButtonEvent(p, button, down, modifiers);
     auto constants = get_window_handler_constants();
-    if (!mEnabled || button != constants.primaryMouseButton())
+    if (!mEnabled || button != constants->primaryMouseButton())
         return false;
 
     if (down) {
