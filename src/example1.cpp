@@ -160,7 +160,7 @@ private:
 
 class ExampleApplication : public nanogui::Screen {
 public:
-    ExampleApplication() : nanogui::Screen(SCREEN_ID, Eigen::Vector2i(1024, 768), 1) {
+    ExampleApplication(float pixel_ratio) : nanogui::Screen(SCREEN_ID, Eigen::Vector2i(1024, 768), pixel_ratio) {
         using namespace nanogui;
 
         Window *window = new Window(this, "Button demo");
@@ -605,6 +605,13 @@ GLFW_KEY_LEFT, GLFW_KEY_RIGHT, GLFW_KEY_UP, GLFW_KEY_DOWN, GLFW_KEY_HOME, GLFW_K
 GLFW_KEY_DELETE, GLFW_KEY_ENTER, GLFW_KEY_A, GLFW_KEY_X, GLFW_KEY_C, GLFW_KEY_V, GLFW_MOD_SHIFT,
 GLFW_MOD_SUPER);
 
+static float get_pixel_ratio(GLFWwindow *window) {
+    Eigen::Vector2i fbSize, size;
+    glfwGetFramebufferSize(window, &fbSize[0], &fbSize[1]);
+    glfwGetWindowSize(window, &size[0], &size[1]);
+    return (float)fbSize[0] / (float)size[0];
+}
+
 int main(int /* argc */, char ** /* argv */) {
     try {
 
@@ -702,12 +709,13 @@ int main(int /* argc */, char ** /* argv */) {
            size events and also catches things like dragging
            a window from a Retina-capable screen to a normal
            screen on Mac OS X */
-        glfwSetFramebufferSizeCallback(mGLFWWindow, [](GLFWwindow*, int width, int height) {
-            constants.handleFramebufferSizeEvent(SCREEN_ID, width, height, 1);
+        glfwSetFramebufferSizeCallback(mGLFWWindow, [](GLFWwindow *w, int width, int height) {
+            auto ratio = get_pixel_ratio(w);
+            constants.handleFramebufferSizeEvent(SCREEN_ID, width, height, ratio);
         });
 
         {
-            nanogui::ref<ExampleApplication> app = new ExampleApplication();
+            nanogui::ref<ExampleApplication> app = new ExampleApplication(get_pixel_ratio(mGLFWWindow));
             app->drawAll();
             app->setVisible(true);
 
