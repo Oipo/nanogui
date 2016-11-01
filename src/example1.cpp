@@ -639,7 +639,7 @@ int main(int /* argc */, char ** /* argv */) {
         glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-        auto mGLFWWindow = glfwCreateWindow(800, 600, "test", nullptr, nullptr);
+        auto mGLFWWindow = glfwCreateWindow(1024, 768, "test", nullptr, nullptr);
 
         if (!mGLFWWindow) {
             throw std::runtime_error("Could not create an OpenGL 3.3 context!");
@@ -680,6 +680,30 @@ int main(int /* argc */, char ** /* argv */) {
 
         glfwSetMouseButtonCallback(mGLFWWindow, [](GLFWwindow*, int button, int action, int modifiers) {
             constants.handleMouseButtonEvent(SCREEN_ID, button, action, modifiers);
+        });
+
+        glfwSetKeyCallback(mGLFWWindow, [](GLFWwindow*, int key, int scancode, int action, int mods) {
+            constants.handleKeyEvent(SCREEN_ID, key, scancode, action, mods);
+        });
+
+        glfwSetCharCallback(mGLFWWindow, [](GLFWwindow*, unsigned int codepoint) {
+            constants.handleUnicodeEvent(SCREEN_ID, codepoint);
+        });
+
+        glfwSetDropCallback(mGLFWWindow, [](GLFWwindow*, int count, const char **filenames) {
+            constants.handleDropEvent(SCREEN_ID, count, filenames);
+        });
+
+        glfwSetScrollCallback(mGLFWWindow, [](GLFWwindow*, double x, double y) {
+            constants.handleScrollEvent(SCREEN_ID, x, y);
+        });
+
+        /* React to framebuffer size events -- includes window
+           size events and also catches things like dragging
+           a window from a Retina-capable screen to a normal
+           screen on Mac OS X */
+        glfwSetFramebufferSizeCallback(mGLFWWindow, [](GLFWwindow*, int width, int height) {
+            constants.handleFramebufferSizeEvent(SCREEN_ID, width, height, 1);
         });
 
         {
