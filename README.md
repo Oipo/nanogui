@@ -4,7 +4,7 @@ NanoGUI was build with a hard dependency on GLFW. I'm making a game with SDL2 an
 
 # Current status
 
-example1.cpp shows a window with some stuff in it, but it's rather glitchy. Python bindings are currently not compiling. Before, NanoGUI had an optional dependency on GLAD, which is now always included.
+Original example 1 and example 2 are fully working. Example 3 has been changed to an implementation with SDL2. Python bindings are currently not compiling. Before, NanoGUI had an optional dependency on GLAD, which is now always included. No testing has been done on Windows/Mac.
 
 # NanoGUI
 
