@@ -94,7 +94,7 @@ int main(int /* argc */, char ** /* argv */) {
         glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-        auto mGLFWWindow = glfwCreateWindow(500, 700, "test", nullptr, nullptr);
+        auto mGLFWWindow = glfwCreateWindow(500, 700, "example2", nullptr, nullptr);
 
         if (!mGLFWWindow) {
             throw std::runtime_error("Could not create an OpenGL 3.3 context!");
@@ -160,7 +160,7 @@ int main(int /* argc */, char ** /* argv */) {
             constants.handleFramebufferSizeEvent(SCREEN_ID, width, height, ratio);
         });
 
-        screen = new Screen(SCREEN_ID, Vector2i(500, 700), 1);
+        screen = new Screen(SCREEN_ID, Vector2i(500, 700), get_pixel_ratio(mGLFWWindow));
 
         bool enabled = true;
         FormHelper *gui = new FormHelper(screen);
@@ -236,6 +236,6 @@ int main(int /* argc */, char ** /* argv */) {
         glfwDestroyWindow(mGLFWWindow);
     }
 
-    nanogui::shutdown();
+    glfwTerminate();
     return 0;
 }

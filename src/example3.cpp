@@ -1,7 +1,6 @@
 /*
     src/example3.cpp -- C++ version of an example application that shows
-    how to use nanogui in an application with an already created and managed
-    glfw context.
+    how to use nanogui in an SDL2 application.
 
     NanoGUI was developed by Wenzel Jakob <wenzel.jakob@epfl.ch>.
     The widget drawing code is based on the NanoVG demo application
@@ -11,23 +10,14 @@
     BSD-style license that can be found in the LICENSE.txt file.
 */
 
-// GLFW
-//
-#if defined(NANOGUI_GLAD)
-    #if defined(NANOGUI_SHARED) && !defined(GLAD_GLAPI_EXPORT)
-        #define GLAD_GLAPI_EXPORT
-    #endif
-
-    #include <glad/glad.h>
-#else
-    #if defined(__APPLE__)
-        #define GLFW_INCLUDE_GLCOREARB
-    #else
-        #define GL_GLEXT_PROTOTYPES
-    #endif
+#if defined(NANOGUI_SHARED) && !defined(GLAD_GLAPI_EXPORT)
+    #define GLAD_GLAPI_EXPORT
 #endif
 
-#include <GLFW/glfw3.h>
+#include <glad/glad.h>
+
+#include <SDL.h>
+#include <SDL_opengl.h>
 
 #include <nanogui/nanogui.h>
 #include <iostream>
@@ -48,51 +38,85 @@ std::string strval = "A string";
 test_enum enumval = Item2;
 Color colval(0.5f, 0.5f, 0.7f, 1.f);
 
+SDL_Window *window = nullptr;
+SDL_GLContext context = nullptr;
 Screen *screen = nullptr;
+
+#define SCREEN_ID 0
+
+using namespace std;
+
+nanogui::WindowHandlerConstants constants(SDL_BUTTON_LEFT, SDL_BUTTON_RIGHT, SDL_PRESSED, SDL_RELEASED,
+SDLK_LEFT, SDLK_RIGHT, SDLK_UP, SDLK_DOWN, SDLK_HOME, SDLK_END, SDLK_BACKSPACE,
+SDLK_DELETE, SDLK_RETURN, SDLK_a, SDLK_x, SDLK_c, SDLK_v, KMOD_SHIFT,
+KMOD_GUI);
 
 int main(int /* argc */, char ** /* argv */) {
 
-    glfwInit();
-
-    glfwSetTime(0);
-
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-
-    glfwWindowHint(GLFW_SAMPLES, 0);
-    glfwWindowHint(GLFW_RED_BITS, 8);
-    glfwWindowHint(GLFW_GREEN_BITS, 8);
-    glfwWindowHint(GLFW_BLUE_BITS, 8);
-    glfwWindowHint(GLFW_ALPHA_BITS, 8);
-    glfwWindowHint(GLFW_STENCIL_BITS, 8);
-    glfwWindowHint(GLFW_DEPTH_BITS, 24);
-    glfwWindowHint(GLFW_RESIZABLE, GL_TRUE);
-
-    // Create a GLFWwindow object
-    GLFWwindow* window = glfwCreateWindow(800, 800, "example3", nullptr, nullptr);
-    if (window == nullptr) {
-        std::cout << "Failed to create GLFW window" << std::endl;
-        glfwTerminate();
-        return -1;
+    if(SDL_Init(SDL_INIT_VIDEO) < 0) {
+        cout << "SDL Init went wrong: " << SDL_GetError() << endl;
+        exit(1);
     }
-    glfwMakeContextCurrent(window);
 
-    // Create a nanogui screen and pass the glfw pointer to initialize
-    screen = new Screen();
-    screen->initialize(window, true);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, SDL_GL_CONTEXT_DEBUG_FLAG);
+    SDL_GL_SetAttribute(SDL_GL_STENCIL_SIZE, 8);
 
-    int width, height;
-    glfwGetFramebufferSize(window, &width, &height);
-    glViewport(0, 0, width, height);
-    glfwSwapInterval(0);
-    glfwSwapBuffers(window);
+    window = SDL_CreateWindow("example3", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+        800, 600, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+    if(window == nullptr) {
+        cout << "Couldn't initialize window: " << SDL_GetError() << endl;
+        throw std::runtime_error("Could not initialize window!");
+    }
+
+    context = SDL_GL_CreateContext(window);
+    if(context == nullptr) {
+        cout << "Couldn't initialize context: " << SDL_GetError() << endl;
+        throw std::runtime_error("Could not initialize context!");
+    }
+
+    if (!gladLoadGLLoader((GLADloadproc) SDL_GL_GetProcAddress))
+        throw std::runtime_error("Could not initialize GLAD!");
+    glGetError(); // pull and ignore unhandled errors like GL_INVALID_ENUM
+
+    if(SDL_GL_SetSwapInterval(1) < 0) {
+        cout << "[main] Couldn't initialize vsync: " << SDL_GetError() << endl;
+        throw std::runtime_error("Could not initialize vsync!");
+    }
+
+    if(SDL_GL_MakeCurrent(window, context) < 0) {
+        cout << "[main] Couldn't make OpenGL context current: " << SDL_GetError() << endl;
+        throw std::runtime_error("Could not make OpenGL context current!");
+    }
+
+    glViewport(0, 0, 800, 600);
+
+    constants.setGetTimeCallback([]() {
+        return SDL_GetTicks()/1000.f;
+    });
+    constants.setGetWindowVisibleCallback([](int) {
+        return (SDL_GetWindowFlags(window) & SDL_WINDOW_SHOWN) == SDL_WINDOW_SHOWN;
+    });
+    constants.setSetClipboardCallback([](int, std::string content) {
+        SDL_SetClipboardText(content.c_str());
+    });
+    constants.setGetClipboardCallback([](int) {
+        auto chrArr = SDL_GetClipboardText();
+        auto str = std::string(chrArr);
+        SDL_free(chrArr);
+        return str;
+    });
+
+    nanogui::init(&constants);
+
+    screen = new Screen(SCREEN_ID, Vector2i(800, 600), 1);
 
     // Create nanogui gui
     bool enabled = true;
     FormHelper *gui = new FormHelper(screen);
-    ref<Window> nanoguiWindow = gui->addWindow(Eigen::Vector2i(10, 10), "Form helper example");
+    nanogui::ref<Window> nanoguiWindow = gui->addWindow(Eigen::Vector2i(10, 10), "Form helper example");
     gui->addGroup("Basic types");
     gui->addVariable("bool", bvar)->setTooltip("Test tooltip.");
     gui->addVariable("string", strval);
@@ -113,53 +137,46 @@ int main(int /* argc */, char ** /* argv */) {
     screen->performLayout();
     nanoguiWindow->center();
 
-
-    glfwSetCursorPosCallback(window,
-            [](GLFWwindow *, double x, double y) {
-            screen->cursorPosCallbackEvent(x, y);
-        }
-    );
-
-    glfwSetMouseButtonCallback(window,
-        [](GLFWwindow *, int button, int action, int modifiers) {
-            screen->mouseButtonCallbackEvent(button, action, modifiers);
-        }
-    );
-
-    glfwSetKeyCallback(window,
-        [](GLFWwindow *, int key, int scancode, int action, int mods) {
-            screen->keyCallbackEvent(key, scancode, action, mods);
-        }
-    );
-
-    glfwSetCharCallback(window,
-        [](GLFWwindow *, unsigned int codepoint) {
-            screen->charCallbackEvent(codepoint);
-        }
-    );
-
-    glfwSetDropCallback(window,
-        [](GLFWwindow *, int count, const char **filenames) {
-            screen->dropCallbackEvent(count, filenames);
-        }
-    );
-
-    glfwSetScrollCallback(window,
-        [](GLFWwindow *, double x, double y) {
-            screen->scrollCallbackEvent(x, y);
-       }
-    );
-
-    glfwSetFramebufferSizeCallback(window,
-        [](GLFWwindow *, int width, int height) {
-            screen->resizeCallbackEvent(width, height);
-        }
-    );
-
     // Game loop
-    while (!glfwWindowShouldClose(window)) {
-        // Check if any events have been activated (key pressed, mouse moved etc.) and call corresponding response functions
-        glfwPollEvents();
+    bool quit = false;
+    SDL_Event e;
+    auto keyboardState = SDL_GetKeyboardState(nullptr);
+    SDL_StartTextInput();
+    SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+    while (!quit) {
+        while(SDL_PollEvent(&e) != 0) {
+            if(e.type == SDL_QUIT || (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_ESCAPE)) {
+                quit = true;
+            } else if(e.type == SDL_TEXTINPUT) {
+                for(int i = 0; i < 32; i++) {
+                    if(e.text.text[i] == 0) {
+                        break;
+                    }
+                    constants.handleUnicodeEvent(SCREEN_ID, e.text.text[i]);
+                }
+            } else if(e.type == SDL_MOUSEMOTION) {
+                constants.handleCursorPosEvent(SCREEN_ID, e.motion.x, e.motion.y);
+            } else if(e.type == SDL_MOUSEBUTTONDOWN || e.type == SDL_MOUSEBUTTONUP) {
+                int modifiers = 0;
+                if(keyboardState[SDL_SCANCODE_LSHIFT] || keyboardState[SDL_SCANCODE_RSHIFT]) {
+                    modifiers = KMOD_SHIFT;
+                }
+                if(keyboardState[SDL_SCANCODE_RGUI] || keyboardState[SDL_SCANCODE_LGUI]) {
+                    modifiers |= KMOD_GUI;
+                }
+                constants.handleMouseButtonEvent(SCREEN_ID, e.button.button, e.button.state, modifiers);
+            } else if(e.type == SDL_KEYDOWN || e.type == SDL_KEYUP) {
+                constants.handleKeyEvent(SCREEN_ID, e.key.keysym.sym, e.key.keysym.scancode, e.key.state, e.key.keysym.mod);
+            } else if(e.type == SDL_DROPFILE) {
+                auto dropped_filedir = e.drop.file;
+                const char** filedir = const_cast<const char**>(&dropped_filedir);
+                cout << "dropped file " << filedir[0] << endl;
+                constants.handleDropEvent(SCREEN_ID, 1, static_cast<const char**>(filedir));
+                SDL_free(dropped_filedir);
+            } else if(e.type == SDL_MOUSEWHEEL) {
+                constants.handleScrollEvent(SCREEN_ID, e.wheel.x, e.wheel.y);
+            } /* no SDL2 handleFramebufferSizeEvent equivalent? */
+        }
 
         glClearColor(0.2f, 0.25f, 0.3f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -168,11 +185,11 @@ int main(int /* argc */, char ** /* argv */) {
         screen->drawContents();
         screen->drawWidgets();
 
-        glfwSwapBuffers(window);
+        SDL_GL_SwapWindow(window);
     }
 
-    // Terminate GLFW, clearing any resources allocated by GLFW.
-    glfwTerminate();
+    SDL_DestroyWindow(window);
+    SDL_Quit();
 
     return 0;
 }

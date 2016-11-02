@@ -646,7 +646,7 @@ int main(int /* argc */, char ** /* argv */) {
         glfwWindowHint(GLFW_VISIBLE, GL_TRUE);
         glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
 
-        auto mGLFWWindow = glfwCreateWindow(1024, 768, "test", nullptr, nullptr);
+        auto mGLFWWindow = glfwCreateWindow(1024, 768, "example1", nullptr, nullptr);
 
         if (!mGLFWWindow) {
             throw std::runtime_error("Could not create an OpenGL 3.3 context!");

@@ -6,6 +6,10 @@ if (POLICY CMP0058)
   cmake_policy(SET CMP0058 NEW)
 endif()
 
+if (POLICY CMP0004)
+  cmake_policy(SET CMP0004 OLD)
+endif()
+
 if (NOT IS_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/ext/nanovg/src")
   message(FATAL_ERROR "The NanoGUI dependency repositories (NanoVG, etc.) are missing! "
     "You probably did not clone the project with --recursive. It is possible to recover "
@@ -191,6 +195,7 @@ list(APPEND NANOGUI_EXTRA_INCS
 if(NANOGUI_BUILD_EXAMPLE)
   list(APPEND NANOGUI_EXTRA_INCS
     "${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw/include"
+    "${CMAKE_CURRENT_SOURCE_DIR}/ext/sdl/include"
   )
 endif()
 
@@ -364,18 +369,19 @@ if(NANOGUI_BUILD_EXAMPLE)
   set(GLFW_BUILD_DOCS OFF CACHE BOOL " " FORCE)
   set(GLFW_BUILD_INSTALL OFF CACHE BOOL " " FORCE)
   set(GLFW_INSTALL OFF CACHE BOOL " " FORCE)
+  find_package(SDL2 REQUIRED >= 2.0.4)
 
   add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/ext/glfw" "ext_build/glfw")
   add_executable(example0 src/example0.cpp $<TARGET_OBJECTS:glfw_objects>)
   add_executable(example1 src/example1.cpp $<TARGET_OBJECTS:glfw_objects>)
   add_executable(example2 src/example2.cpp $<TARGET_OBJECTS:glfw_objects>)
-  #add_executable(example3 src/example3.cpp $<TARGET_OBJECTS:glfw_objects>)
+  add_executable(example3 src/example3.cpp)
   target_link_libraries(example0 nanogui ${NANOGUI_EXTRA_LIBS})
   target_link_libraries(example1 nanogui ${NANOGUI_EXTRA_LIBS})
   target_link_libraries(example2 nanogui ${NANOGUI_EXTRA_LIBS})
-  #target_link_libraries(example3 nanogui ${NANOGUI_EXTRA_LIBS})
-  include_directories(${NANOGUI_EIGEN_INCLUDE_DIR} ext/glfw/include)
-  # add_library(example1 ${NANOGUI_LIBRARY_TYPE} $<TARGET_OBJECTS:glfw_objects>)
+  target_link_libraries(example3 nanogui ${NANOGUI_EXTRA_LIBS})
+  target_link_libraries(example3 nanogui ${SDL2_LIBRARIES})
+  include_directories(${NANOGUI_EIGEN_INCLUDE_DIR} ext/glfw/include ${SDL2_INCLUDE_DIRS})
   # set_target_properties(glfw_objects PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
   # Copy icons for example application
@@ -383,7 +389,7 @@ if(NANOGUI_BUILD_EXAMPLE)
 
   if (NANOGUI_INSTALL)
   #example2 example3
-    install(TARGETS example1
+    install(TARGETS example1 example2 example3
             RUNTIME DESTINATION bin)
   endif()
 endif()

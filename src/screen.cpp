@@ -51,6 +51,9 @@ Screen::Screen(int id, const Vector2i &size, float pixelRatio)
 
 void Screen::initialize(int id, const Vector2i &size, float pixelRatio) {
     auto constants = get_window_handler_constants();
+    if(constants == nullptr) {
+        throw std::runtime_error("Constants not defined! (have you forgotten to call nanogui::init()?)");
+    }
     constants->addCursorPosCallback(id, std::bind(&Screen::cursorPosCallbackEvent, this, std::placeholders::_1, std::placeholders::_2));
     constants->addMouseButtonCallback(id, std::bind(&Screen::mouseButtonCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     constants->addKeyCallback(id, std::bind(&Screen::keyCallbackEvent, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4));
